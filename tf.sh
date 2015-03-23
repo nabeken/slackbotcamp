@@ -1,6 +1,11 @@
 #!/bin/bash
 WORKSPACE="${WORKSPACE:-$(git rev-parse --show-toplevel)}"
 
+die() {
+  echo "${@}" >&2
+  exit 1
+}
+
 myterraform() {
   terraform "${@}" \
     -var "do_token=${DO_TOKEN}" \
@@ -11,7 +16,7 @@ myterraform() {
 cd "${WORKSPACE}/tf/"
 
 if [ "${1}" = "apply" ]; then
-  myterraform "${@}" -state-out="terraform.tfstate.new"
+  myterraform "${@}" -state-out="terraform.tfstate.new" || die "failed to execute terraform"
 
   diff -u <(terraform show) <(terraform show terraform.tfstate.new) > /dev/null
   if [ $? -eq 1 ]; then
@@ -21,5 +26,5 @@ if [ "${1}" = "apply" ]; then
     git push origin HEAD:${CIRCLE_BRANCH}
   fi
 else
-  myterraform "${@}"
+  myterraform "${@}" || die "failed to execute terraform"
 fi
